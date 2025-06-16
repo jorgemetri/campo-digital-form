@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DataRow } from '@/types/formTypes';
@@ -10,6 +10,21 @@ interface DataGridProps {
 }
 
 const DataGrid: React.FC<DataGridProps> = ({ data, onChange }) => {
+  // Inicializar com linhas vazias se não houver dados
+  useEffect(() => {
+    if (data.length === 0) {
+      const initialData: DataRow[] = Array.from({ length: 10 }, (_, index) => ({
+        N: index + 1,
+        UN: '',
+        H: '',
+        FITO: '',
+        L: '',
+        EL: ''
+      }));
+      onChange(initialData);
+    }
+  }, [data.length, onChange]);
+
   const updateCell = (rowIndex: number, field: keyof DataRow, value: string | number) => {
     const newData = [...data];
     if (field === 'H' || field === 'L' || field === 'EL') {
@@ -19,6 +34,16 @@ const DataGrid: React.FC<DataGridProps> = ({ data, onChange }) => {
     }
     onChange(newData);
   };
+
+  // Se ainda não há dados, mostrar tabela vazia temporariamente
+  const displayData = data.length > 0 ? data : Array.from({ length: 10 }, (_, index) => ({
+    N: index + 1,
+    UN: '',
+    H: '',
+    FITO: '',
+    L: '',
+    EL: ''
+  }));
 
   return (
     <div className="overflow-x-auto">
@@ -34,10 +59,10 @@ const DataGrid: React.FC<DataGridProps> = ({ data, onChange }) => {
           </tr>
         </thead>
         <tbody>
-          {data.map((row, index) => (
-            <tr key={index}>
+          {displayData.map((row, index) => (
+            <tr key={index} className="hover:bg-gray-50">
               <td className="border border-gray-300 px-2 py-1">
-                <span className="text-sm">{row.N}</span>
+                <span className="text-sm font-medium">{row.N}</span>
               </td>
               <td className="border border-gray-300 px-2 py-1">
                 <Select
@@ -62,6 +87,7 @@ const DataGrid: React.FC<DataGridProps> = ({ data, onChange }) => {
                   value={row.H === '' ? '' : row.H}
                   onChange={(e) => updateCell(index, 'H', e.target.value)}
                   className="h-8 text-xs"
+                  placeholder="0"
                 />
               </td>
               <td className="border border-gray-300 px-2 py-1">
@@ -87,6 +113,7 @@ const DataGrid: React.FC<DataGridProps> = ({ data, onChange }) => {
                   value={row.L === '' ? '' : row.L}
                   onChange={(e) => updateCell(index, 'L', e.target.value)}
                   className="h-8 text-xs"
+                  placeholder="0"
                 />
               </td>
               <td className="border border-gray-300 px-2 py-1">
@@ -95,6 +122,7 @@ const DataGrid: React.FC<DataGridProps> = ({ data, onChange }) => {
                   value={row.EL === '' ? '' : row.EL}
                   onChange={(e) => updateCell(index, 'EL', e.target.value)}
                   className="h-8 text-xs"
+                  placeholder="0"
                 />
               </td>
             </tr>

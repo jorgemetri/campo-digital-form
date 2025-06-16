@@ -7,12 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Download, Save, Loader2 } from 'lucide-react';
+import { Calendar, Send, Loader2 } from 'lucide-react';
 import DataGrid from './DataGrid';
 import { ParcelData, FormData } from '../types/formTypes';
-import { exportToCSV } from '../utils/csvExport';
 // INTEGRAÇÃO: Importando hooks da API
-import { useSaveFieldData, useFarms } from '../services/apiService';
+import { useSaveFieldData } from '../services/apiService';
 import { useToast } from '@/hooks/use-toast';
 
 const FARMS = ['Onça Pintada', 'Mantiqueira', 'Nova Era'];
@@ -33,10 +32,6 @@ const FieldDataForm = () => {
   // INTEGRAÇÃO: Hooks da API
   const saveDataMutation = useSaveFieldData();
   const { toast } = useToast();
-  
-  // INTEGRAÇÃO: Buscar fazendas da API (opcional)
-  // const { data: farmsFromApi, isLoading: farmsLoading } = useFarms();
-  // const farmOptions = farmsFromApi?.data || FARMS;
 
   const handleParcelDataChange = (parcelNumber: number, data: any[], observations?: string) => {
     setFormData(prev => ({
@@ -64,33 +59,42 @@ const FieldDataForm = () => {
     }));
   };
 
-  // INTEGRAÇÃO: Função para salvar na API
-  const handleSaveToApi = async () => {
+  // INTEGRAÇÃO: Função para enviar dados para a API
+  const handleSubmit = async () => {
     try {
-      console.log('Salvando dados na API:', formData);
+      console.log('Enviando dados para a API:', formData);
       
       const result = await saveDataMutation.mutateAsync(formData);
       
       if (result.success) {
         toast({
           title: "Sucesso!",
-          description: "Dados salvos na API com sucesso.",
+          description: "Dados enviados com sucesso para o banco de dados.",
         });
+        
+        // Opcional: Limpar formulário após envio bem-sucedido
+        // setFormData({
+        //   date: new Date().toISOString().split('T')[0],
+        //   farm: '',
+        //   plot: '',
+        //   parcels: {
+        //     1: { data: [], observations: '' },
+        //     2: { data: [], observations: '' },
+        //     3: { data: [], observations: '' },
+        //     4: { data: [], observations: '' }
+        //   }
+        // });
       } else {
-        throw new Error(result.error || 'Erro ao salvar dados');
+        throw new Error(result.error || 'Erro ao enviar dados');
       }
     } catch (error) {
-      console.error('Erro ao salvar na API:', error);
+      console.error('Erro ao enviar dados:', error);
       toast({
         title: "Erro",
-        description: "Erro ao salvar dados na API. Verifique a conexão.",
+        description: "Erro ao enviar dados. Verifique a conexão com a API.",
         variant: "destructive",
       });
     }
-  };
-
-  const handleExport = () => {
-    exportToCSV(formData);
   };
 
   const isFormValid = formData.farm && formData.plot;
@@ -131,7 +135,6 @@ const FieldDataForm = () => {
                     <SelectValue placeholder="Selecione a fazenda" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-2 border-gray-200 z-50">
-                    {/* INTEGRAÇÃO: Use farmOptions se buscar da API */}
                     {FARMS.map((farm) => (
                       <SelectItem key={farm} value={farm} className="hover:bg-green-50">
                         {farm}
@@ -201,44 +204,34 @@ const FieldDataForm = () => {
               ))}
             </Tabs>
 
-            {/* INTEGRAÇÃO: Seção de Ações com botão para salvar na API */}
+            {/* INTEGRAÇÃO: Seção de Envio com apenas um botão verde */}
             <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-200">
               <div className="text-center space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">
                   Finalizar Coleta de Dados
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Salve os dados na API ou gere e baixe o relatório em formato CSV
+                  Envie os dados coletados para o banco de dados
                 </p>
                 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  {/* INTEGRAÇÃO: Botão para salvar na API */}
+                <div className="flex justify-center">
                   <Button 
-                    onClick={handleSaveToApi}
+                    onClick={handleSubmit}
                     disabled={!isFormValid || saveDataMutation.isPending}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    className="bg-green-600 hover:bg-green-700 text-white px-12 py-4 rounded-lg font-semibold text-lg shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {saveDataMutation.isPending ? (
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                     ) : (
-                      <Save className="mr-2 h-5 w-5" />
+                      <Send className="mr-2 h-6 w-6" />
                     )}
-                    {saveDataMutation.isPending ? 'Salvando...' : 'Salvar na API'}
-                  </Button>
-
-                  <Button 
-                    onClick={handleExport}
-                    disabled={!isFormValid}
-                    className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-3 rounded-lg font-semibold shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    <Download className="mr-2 h-5 w-5" />
-                    Gerar e Baixar CSV
+                    {saveDataMutation.isPending ? 'Enviando...' : 'Enviar'}
                   </Button>
                 </div>
                 
                 {!isFormValid && (
                   <p className="text-sm text-red-600 mt-2">
-                    Preencha a fazenda e o talhão/bloco para habilitar as ações
+                    Preencha a fazenda e o talhão/bloco para enviar os dados
                   </p>
                 )}
               </div>
