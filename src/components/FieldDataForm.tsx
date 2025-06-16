@@ -7,10 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Download } from 'lucide-react';
+import { Calendar, Download, Save, Loader2 } from 'lucide-react';
 import DataGrid from './DataGrid';
 import { ParcelData, FormData } from '../types/formTypes';
 import { exportToCSV } from '../utils/csvExport';
+// INTEGRAÇÃO: Importando hooks da API
+import { useSaveFieldData, useFarms } from '../services/apiService';
+import { useToast } from '@/hooks/use-toast';
 
 const FARMS = ['Onça Pintada', 'Mantiqueira', 'Nova Era'];
 
@@ -26,6 +29,14 @@ const FieldDataForm = () => {
       4: { data: [], observations: '' }
     }
   });
+
+  // INTEGRAÇÃO: Hooks da API
+  const saveDataMutation = useSaveFieldData();
+  const { toast } = useToast();
+  
+  // INTEGRAÇÃO: Buscar fazendas da API (opcional)
+  // const { data: farmsFromApi, isLoading: farmsLoading } = useFarms();
+  // const farmOptions = farmsFromApi?.data || FARMS;
 
   const handleParcelDataChange = (parcelNumber: number, data: any[], observations?: string) => {
     setFormData(prev => ({
@@ -51,6 +62,31 @@ const FieldDataForm = () => {
         }
       }
     }));
+  };
+
+  // INTEGRAÇÃO: Função para salvar na API
+  const handleSaveToApi = async () => {
+    try {
+      console.log('Salvando dados na API:', formData);
+      
+      const result = await saveDataMutation.mutateAsync(formData);
+      
+      if (result.success) {
+        toast({
+          title: "Sucesso!",
+          description: "Dados salvos na API com sucesso.",
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao salvar dados');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar na API:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar dados na API. Verifique a conexão.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExport = () => {
@@ -95,6 +131,7 @@ const FieldDataForm = () => {
                     <SelectValue placeholder="Selecione a fazenda" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-2 border-gray-200 z-50">
+                    {/* INTEGRAÇÃO: Use farmOptions se buscar da API */}
                     {FARMS.map((farm) => (
                       <SelectItem key={farm} value={farm} className="hover:bg-green-50">
                         {farm}
@@ -164,26 +201,44 @@ const FieldDataForm = () => {
               ))}
             </Tabs>
 
-            {/* Export Section */}
+            {/* INTEGRAÇÃO: Seção de Ações com botão para salvar na API */}
             <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-200">
               <div className="text-center space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">
                   Finalizar Coleta de Dados
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Clique no botão abaixo para gerar e baixar o relatório em formato CSV
+                  Salve os dados na API ou gere e baixe o relatório em formato CSV
                 </p>
-                <Button 
-                  onClick={handleExport}
-                  disabled={!isFormValid}
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-3 rounded-lg font-semibold shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  <Download className="mr-2 h-5 w-5" />
-                  Gerar e Baixar Relatório CSV
-                </Button>
+                
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  {/* INTEGRAÇÃO: Botão para salvar na API */}
+                  <Button 
+                    onClick={handleSaveToApi}
+                    disabled={!isFormValid || saveDataMutation.isPending}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {saveDataMutation.isPending ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-5 w-5" />
+                    )}
+                    {saveDataMutation.isPending ? 'Salvando...' : 'Salvar na API'}
+                  </Button>
+
+                  <Button 
+                    onClick={handleExport}
+                    disabled={!isFormValid}
+                    className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-3 rounded-lg font-semibold shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    <Download className="mr-2 h-5 w-5" />
+                    Gerar e Baixar CSV
+                  </Button>
+                </div>
+                
                 {!isFormValid && (
                   <p className="text-sm text-red-600 mt-2">
-                    Preencha a fazenda e o talhão/bloco para habilitar a exportação
+                    Preencha a fazenda e o talhão/bloco para habilitar as ações
                   </p>
                 )}
               </div>
